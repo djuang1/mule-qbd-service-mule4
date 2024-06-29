@@ -149,10 +149,8 @@ ns dev http://developer.intuit.com/
                 </ee:set-payload>
             </ee:message>
         </ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="dc6c1b38-840c-4b18-9433-1f78cf137b28" />
     </flow>
     <flow name="receiveResponseXML:\soapkit-config">
-        <logger level="INFO" doc:name="Logger" doc:id="26b6a258-cdf9-45c8-8605-aefec037c791" message='#["Receive Response"]'/>
 		<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message='#[output application/json&#10;---&#10;read(payload.body.receiveResponseXML.response,"application/xml")]'/>
 		<ee:transform>
             <ee:message>
@@ -173,7 +171,6 @@ ns q1 http://developer.intuit.com/
         </ee:transform>
     </flow>
     <flow name="getLastError:\soapkit-config">
-        <logger level="INFO" doc:name="Logger" doc:id="e24e8a7b-bf2a-4ce7-8615-6fe096377bd4" />
 		<ee:transform>
             <ee:message>
                 <ee:set-payload>
