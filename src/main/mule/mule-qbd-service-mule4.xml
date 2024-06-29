@@ -146,20 +146,15 @@ ns dev http://developer.intuit.com/
 ---
 {
     body: {
-        sendRequestXMLResponse @("xmlns": dev): {
-            sendRequestXMLResult: "<?xml version='1.0'?>
-						        	<QBXML>
-							        <QBXMLMsgsRs>
-							        </QBXMLMsgsRs>
-							        </QBXML>"
-        	//payload.^raw as String  
-            //sendRequestXMLResult: StringEscapeUtils::escapeHtml4(payload.^raw as String)  
-        }
+      sendRequestXMLResponse @("xmlns": dev): {
+      	sendRequestXMLResult: "<?xml version='1.0' encoding='utf-8'?><?qbxml version='15.0'?><QBXML><QBXMLMsgsRq onError='stopOnError'><AccountQueryRq requestID='1'></AccountQueryRq></QBXMLMsgsRq></QBXML>" as CData
+      }      	
     } write "application/xml"
 }]]>
                 </ee:set-payload>
             </ee:message>
         </ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="dc6c1b38-840c-4b18-9433-1f78cf137b28" />
     </flow>
     <flow name="receiveResponseXML:\soapkit-config">
         <logger level="INFO" doc:name="Logger" doc:id="26b6a258-cdf9-45c8-8605-aefec037c791" message='#["Receive Response"]'/>
@@ -182,7 +177,8 @@ ns q1 http://developer.intuit.com/
         </ee:transform>
     </flow>
     <flow name="getLastError:\soapkit-config">
-        <ee:transform>
+        <logger level="INFO" doc:name="Logger" doc:id="e24e8a7b-bf2a-4ce7-8615-6fe096377bd4" />
+		<ee:transform>
             <ee:message>
                 <ee:set-payload>
                     <![CDATA[%dw 2.0
