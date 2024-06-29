@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit-soap="http://www.mulesoft.org/schema/mule/apikit-soap" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/apikit-soap http://www.mulesoft.org/schema/mule/apikit-soap/current/mule-apikit-soap.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+    <http:listener-config name="api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081"/>
+    </http:listener-config>
+    <apikit-soap:config httpStatusVarName="httpStatus" name="soapkit-config" port="TroubleshootWebServiceFSSoap" service="TroubleshootWebServiceFS" wsdlLocation="https://test.developer.intuit.com/QBWC/TroubleshootWebServiceFS/Service.asmx?wsdl"/>
+    <flow name="api-main">
+        <http:listener config-ref="api-httpListenerConfig" path="/TroubleshootWebServiceFS/TroubleshootWebServiceFSSoap">
+            <http:response statusCode="#[attributes.additionalTransportData.statusCode default 200]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[attributes.protocolHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[attributes.additionalTransportData.statusCode default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[attributes.protocolHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit-soap:router config-ref="soapkit-config">
+            <apikit-soap:message>#[payload]</apikit-soap:message>
+            <apikit-soap:attributes>#[
+              %dw 2.0
+              output application/java
+              ---
+              {
+                  headers: attributes.headers,
+                  method: attributes.method,
+                  queryString: attributes.queryString
+            }]</apikit-soap:attributes>
+        </apikit-soap:router>
+    </flow>
+    <flow name="serverVersion:\soapkit-config">
+		<logger level="INFO" doc:name="Logger" doc:id="a3342a80-c1fb-4fb1-b813-3b4412d1ba98" />
+		<ee:transform doc:name="Transform Message" doc:id="d741f994-d596-47eb-be8f-88040afc2bee" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+ns q1 http://developer.intuit.com/ 
+---
+{
+    soap#body: {
+        serverVersionResponse: {
+            serverVersionResult @("xmlns": q1): "2.0"
+            
+        }
+    } write "application/xml"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="f4b47839-ab2c-46a0-9baa-87990390bb78" />
+    </flow>
+    <flow name="clientVersion:\soapkit-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload>
+                    <![CDATA[%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        soap#Fault: {
+            faultcode: "soap:Server",
+            faultstring: "Operation [clientVersion:\soapkit-config] not implemented"
+        }
+    } write "application/xml"
+}]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="authenticate:\soapkit-config">
+        <set-variable value="#[uuid()]" doc:name="Set Variable" doc:id="914b5aba-e04e-4060-b453-8e974de3b672" variableName="ticket"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3ccd7670-6649-4d19-a98d-abb6b6d28506" />
+		<ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+ns q1 http://developer.intuit.com/ 
+---
+{
+    body: {
+        authenticateResponse @("xmlns": q1): {
+            authenticateResult: {
+            	string: vars.ticket,
+            	string: ""
+            }
+        }
+    } write "application/xml"
+}]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<os:store doc:name="Store" doc:id="55983e31-f082-4d9f-a351-09378b7c6196" key="ticket">
+			<os:value ><![CDATA[#[vars.ticket]]]></os:value>
+		</os:store>
+    </flow>
+    <flow name="connectionError:\soapkit-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload>
+                    <![CDATA[%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        soap#Fault: {
+            faultcode: "soap:Server",
+            faultstring: "Operation [connectionError:\soapkit-config] not implemented"
+        }
+    } write "application/xml"
+}]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="sendRequestXML:\soapkit-config">
+		<os:retrieve doc:name="Retrieve" doc:id="f358818c-5057-4073-8a75-004e21a5f337" key="ticket" target="ticket">
+			<os:default-value ><![CDATA[#[""]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="b4f6d61b-b639-44f6-894f-a35e55c44ab7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	QBXML: {
+		QBXMLMsgsRq @("onError": "continueOnError"): {
+			CustomerQueryRq @("requestID": 1): {
+			}
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:id="d216f8fa-9208-4560-928a-dc14a0625838">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+import java!org::apache::commons::text::StringEscapeUtils
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+ns dev http://developer.intuit.com/ 
+---
+{
+    body: {
+        sendRequestXMLResponse @("xmlns": dev): {
+            sendRequestXMLResult: "<?xml version='1.0'?>
+						        	<QBXML>
+							        <QBXMLMsgsRs>
+							        </QBXMLMsgsRs>
+							        </QBXML>"
+        	//payload.^raw as String  
+            //sendRequestXMLResult: StringEscapeUtils::escapeHtml4(payload.^raw as String)  
+        }
+    } write "application/xml"
+}]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="receiveResponseXML:\soapkit-config">
+        <logger level="INFO" doc:name="Logger" doc:id="26b6a258-cdf9-45c8-8605-aefec037c791" message='#["Receive Response"]'/>
+		<ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+ns q1 http://developer.intuit.com/ 
+---
+{
+    body: {
+        receiveResponseXMLResponse @("xmlns": q1): {
+            receiveResponseXMLResult: "101"           
+        }
+    } write "application/xml"
+}]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="getLastError:\soapkit-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload>
+                    <![CDATA[%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        soap#Fault: {
+            faultcode: "soap:Server",
+            faultstring: "Operation [getLastError:\soapkit-config] not implemented"
+        }
+    } write "application/xml"
+}]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="closeConnection:\soapkit-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload>
+                    <![CDATA[%dw 2.0
+output application/java
+ns soap http://schemas.xmlsoap.org/soap/envelope
+---
+{
+    body: {
+        soap#Fault: {
+            faultcode: "soap:Server",
+            faultstring: "Operation [closeConnection:\soapkit-config] not implemented"
+        }
+    } write "application/xml"
+}]]>
+                </ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
