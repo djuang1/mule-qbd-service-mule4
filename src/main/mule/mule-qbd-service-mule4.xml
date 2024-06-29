@@ -162,7 +162,7 @@ ns q1 http://developer.intuit.com/
 {
     body: {
         receiveResponseXMLResponse @("xmlns": q1): {
-            receiveResponseXMLResult: "101"           
+            receiveResponseXMLResult @("xmlns": q1): "101"           
         }
     } write "application/xml"
 }]]>
@@ -173,16 +173,15 @@ ns q1 http://developer.intuit.com/
     <flow name="getLastError:\soapkit-config">
 		<ee:transform>
             <ee:message>
-                <ee:set-payload>
-                    <![CDATA[%dw 2.0
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ns soap http://schemas.xmlsoap.org/soap/envelope
+ns q1 http://developer.intuit.com/ 
 ---
 {
     body: {
-        soap#Fault: {
-            faultcode: "soap:Server",
-            faultstring: "Operation [getLastError:\soapkit-config] not implemented"
+        getLastErrorResponse @("xmlns": q1): {
+            getLastErrorResult @("xmlns": q1): "Error!"
         }
     } write "application/xml"
 }]]>
@@ -193,16 +192,15 @@ ns soap http://schemas.xmlsoap.org/soap/envelope
     <flow name="closeConnection:\soapkit-config">
         <ee:transform>
             <ee:message>
-                <ee:set-payload>
-                    <![CDATA[%dw 2.0
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ns soap http://schemas.xmlsoap.org/soap/envelope
+ns q1 http://developer.intuit.com/ 
 ---
 {
     body: {
-        soap#Fault: {
-            faultcode: "soap:Server",
-            faultstring: "Operation [closeConnection:\soapkit-config] not implemented"
+        closeConnectionResponse @("xmlns": q1): {
+            closeConnectionResult @("xmlns": q1): "Session Ended"
         }
     } write "application/xml"
 }]]>
