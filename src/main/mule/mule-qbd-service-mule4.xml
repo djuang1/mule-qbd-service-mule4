@@ -30,7 +30,6 @@ http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/cu
         </apikit-soap:router>
     </flow>
     <flow name="serverVersion:\soapkit-config">
-		<logger level="INFO" doc:name="Logger" doc:id="a3342a80-c1fb-4fb1-b813-3b4412d1ba98" />
 		<ee:transform doc:name="Transform Message" doc:id="d741f994-d596-47eb-be8f-88040afc2bee" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
@@ -40,29 +39,26 @@ ns q1 http://developer.intuit.com/
 ---
 {
     soap#body: {
-        serverVersionResponse: {
-            serverVersionResult @("xmlns": q1): "2.0"
-            
+        serverVersionResponse @("xmlns": q1): {
+            serverVersionResult @("xmlns": q1): "1.0"     
         }
     } write "application/xml"
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="f4b47839-ab2c-46a0-9baa-87990390bb78" />
     </flow>
     <flow name="clientVersion:\soapkit-config">
         <ee:transform>
             <ee:message>
-                <ee:set-payload>
-                    <![CDATA[%dw 2.0
+                <ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ns soap http://schemas.xmlsoap.org/soap/envelope
+ns q1 http://developer.intuit.com/
 ---
 {
     body: {
-        soap#Fault: {
-            faultcode: "soap:Server",
-            faultstring: "Operation [clientVersion:\soapkit-config] not implemented"
+        clientVersionResponse @("xmlns": q1): {
+            clientVersionResult @("xmlns": q1): null
         }
     } write "application/xml"
 }]]>
@@ -72,7 +68,6 @@ ns soap http://schemas.xmlsoap.org/soap/envelope
     </flow>
     <flow name="authenticate:\soapkit-config">
         <set-variable value="#[uuid()]" doc:name="Set Variable" doc:id="914b5aba-e04e-4060-b453-8e974de3b672" variableName="ticket"/>
-		<logger level="INFO" doc:name="Logger" doc:id="3ccd7670-6649-4d19-a98d-abb6b6d28506" />
 		<ee:transform>
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
@@ -147,7 +142,7 @@ ns dev http://developer.intuit.com/
 {
     body: {
       sendRequestXMLResponse @("xmlns": dev): {
-      	sendRequestXMLResult: "<?xml version='1.0' encoding='utf-8'?><?qbxml version='15.0'?><QBXML><QBXMLMsgsRq onError='stopOnError'><AccountQueryRq requestID='1'></AccountQueryRq></QBXMLMsgsRq></QBXML>" as CData
+      	sendRequestXMLResult @("xmlns": dev): "<?qbxml version=\"4.0\"?><QBXML><QBXMLMsgsRq onError=\"stopOnError\"><AccountQueryRq requestID=\"1\"></AccountQueryRq></QBXMLMsgsRq></QBXML>" as CData
       }      	
     } write "application/xml"
 }]]>
