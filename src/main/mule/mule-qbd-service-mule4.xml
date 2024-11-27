@@ -113,25 +113,30 @@ ns soap http://schemas.xmlsoap.org/soap/envelope
         </ee:transform>
     </flow>
     <flow name="sendRequestXML:\soapkit-config">
-		<os:retrieve doc:name="Retrieve" doc:id="f358818c-5057-4073-8a75-004e21a5f337" key="ticket" target="ticket">
+		<os:retrieve doc:name="ticket" doc:id="a2342d55-c9a4-4ccb-a559-b13df4adf8d7" key="ticket" target="ticket">
 			<os:default-value ><![CDATA[#[""]]]></os:default-value>
 		</os:retrieve>
-		<ee:transform doc:name="Transform Message" doc:id="b4f6d61b-b639-44f6-894f-a35e55c44ab7" >
+		<os:retrieve doc:name="watermark" doc:id="a098fc74-32d5-4dd2-8ecc-8881309ac6e9" key="lastModified" target="lastModified">
+			<os:default-value ><![CDATA[#[now()]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="995a5393-efab-40b3-901f-a374c2d3934d" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
-output application/xml
+output application/xml indent=false
 ---
 {
 	QBXML: {
-		QBXMLMsgsRq @("onError": "continueOnError"): {
-			CustomerQueryRq @("requestID": 1): {
+		QBXMLMsgsRq @(onError: "stopOnError"): {
+			CustomerQueryRq @(requestID: "1"): {
+				MaxReturned: 2,
+				FromModifiedDate: vars.lastModified as String {format: "y-MM-d'T'H:mm:ss"}
 			}
 		}
 	}
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<ee:transform doc:id="d216f8fa-9208-4560-928a-dc14a0625838">
+		<ee:transform doc:id="c30571d4-cb16-41bb-8690-4ca723522161">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
 import java!org::apache::commons::text::StringEscapeUtils
@@ -142,13 +147,17 @@ ns dev http://developer.intuit.com/
 {
     body: {
       sendRequestXMLResponse @("xmlns": dev): {
-      	sendRequestXMLResult @("xmlns": dev): "<?qbxml version=\"4.0\"?><QBXML><QBXMLMsgsRq onError=\"stopOnError\"><AccountQueryRq requestID=\"1\"></AccountQueryRq></QBXMLMsgsRq></QBXML>" as CData
+      	sendRequestXMLResult @("xmlns": dev): (payload.^raw replace "<?xml version='1.0' encoding='UTF-8'?>" with "<?qbxml version=\"4.0\"?>") as CData
       }      	
     } write "application/xml"
 }]]>
                 </ee:set-payload>
             </ee:message>
         </ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="23917b77-144e-463b-915a-51fb4ee83290" />
+		<os:store doc:name="Store" doc:id="f53f8c8d-90c5-4505-a631-40d69d3017ee" key="lastModified">
+			<os:value ><![CDATA[#[now()]]]></os:value>
+		</os:store>
     </flow>
     <flow name="receiveResponseXML:\soapkit-config">
 		<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message='#[output application/json&#10;---&#10;read(payload.body.receiveResponseXML.response,"application/xml")]'/>
