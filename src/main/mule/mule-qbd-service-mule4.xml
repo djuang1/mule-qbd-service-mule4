@@ -153,7 +153,7 @@ CustomerAddRq: {
 			PostalCode: $.BillingPostalCode default "",
 			Country: $.BillingCountry default ""
 		},
-		Cc: $.Id,
+		AltPhone: $.Id,
 		Phone: $.Phone default ""
 	})
 }]]></ee:set-variable>
@@ -163,7 +163,7 @@ output application/xml indent=false, inlineCloseOn="never"
 CustomerModRq: {
 	CustomerMod: (payload filter ($.QB_List_ID__c != null) map {
 		ListID: payload.QB_List_ID__c,
-		EditSequence: "mod",
+		EditSequence: "123",
 		Name: $.Name default "",
 		FirstName: $.FirstName default "",
 		LastName: $.LastName default "",
@@ -174,6 +174,7 @@ CustomerModRq: {
 			PostalCode: $.BillingPostalCode default "",
 			Country: $.BillingCountry default ""
 		},
+		AltPhone: $.Id,
 		Phone: $.Phone default ""
 	})
 }]]></ee:set-variable>
@@ -250,22 +251,36 @@ ns dev http://developer.intuit.com/
 		</os:store>
     </flow>
     <flow name="receiveResponseXML:\soapkit-config">
-		<logger level="INFO" doc:name="Logger" doc:id="8a660816-e832-4c5a-8f50-f73e3fb1d8ac" message="#[payload]"/>
-		<set-payload value='#[output application/xml&#10;---&#10;read(payload.body.receiveResponseXML.response,"application/xml")]' doc:name="Set Payload" doc:id="931ca127-261a-4d46-97b0-e063b81ba387" />
-		<ee:transform doc:name="Transform Message" doc:id="1d53d0c1-1ec4-4b85-8af7-de804730dd64" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+		<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message='#[output application/json writeAttributes=true&#10;---&#10;payload.body.receiveResponseXML]'/>
+		<choice doc:name="Choice" doc:id="48f339b4-2baf-49b5-a902-e04eb8675037" >
+			<when expression="#[output application/json writeAttributes=true&#10;---&#10;payload.body.receiveResponseXML.hresult == null]">
+				<set-variable value='#[output application/json writeAttributes=true&#10;---&#10;read(payload.body.receiveResponseXML.response,"application/xml").QBXML.QBXMLMsgsRs.CustomerQueryRs.@statusCode]' doc:name="Set Variable" doc:id="938dc3bb-4afd-45e9-935c-e726308ac3bd" variableName="statusCode" />
+				<choice doc:name="Choice" doc:id="3f0412d9-e95c-41d2-867f-15e6254fbd96">
+			<when expression='#[vars.statusCode != "1"]'>
+				<set-payload value='#[output application/xml&#10;---&#10;read(payload.body.receiveResponseXML.response default "","application/xml")]' doc:name="Set Payload" doc:id="931ca127-261a-4d46-97b0-e063b81ba387" />
+				<ee:transform doc:name="Transform Message" doc:id="1d53d0c1-1ec4-4b85-8af7-de804730dd64">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
 [{
-	Name: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.CompanyName,
+	Name: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Name,
 	Phone: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Phone,
 	QB_List_ID__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.ListID
 }]]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<salesforce:upsert doc:name="Upsert" doc:id="f0217685-ff44-471a-a077-541e344a0a05" config-ref="Salesforce_Config" objectType="Account" externalIdFieldName="QB_List_ID__c"/>
-		<!-- [STUDIO:"Logger"]<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message='#[output application/json&#10;&#45;&#45;-&#10;read(payload.body.receiveResponseXML.response,"application/xml")&#93;'/> [STUDIO] -->
+				<salesforce:upsert doc:name="Upsert" doc:id="f0217685-ff44-471a-a077-541e344a0a05" config-ref="Salesforce_Config" objectType="Account" externalIdFieldName="QB_List_ID__c" />
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Logger" doc:id="a4bcaf34-ffd6-4579-bfc1-c9ee5dceadff" />
+			</otherwise>
+		</choice>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="0e747a8b-357e-4502-88eb-1de9d59ee1f5" />
+			</otherwise>
+		</choice>
 		<ee:transform>
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
