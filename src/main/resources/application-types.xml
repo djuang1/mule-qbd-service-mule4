@@ -4,6 +4,9 @@
     <types:type name="CustomerAdd" format="xml">
       <types:example format="xml" element="QBXML" location="CustomerAdd.xml"/>
     </types:type>
+    <types:type name="receiveResponseXML" format="xml">
+      <types:example format="xml" element="QBXML" location="receiveResponseXML.xml"/>
+    </types:type>
   </types:catalog>
   <types:enrichment select="#81c25bbd-39a7-4ef9-a0d2-85f48d585066">
     <types:processor-declaration>
@@ -12,6 +15,15 @@
           <types:variable name="customerAdd" type="CustomerAdd"/>
         </types:variables>
       </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#1d53d0c1-1ec4-4b85-8af7-de804730dd64">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="receiveResponseXML"/>
+        </types:message>
+      </types:input-event>
     </types:processor-declaration>
   </types:enrichment>
 </types:mule>

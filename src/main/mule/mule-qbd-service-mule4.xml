@@ -121,7 +121,7 @@ ns soap http://schemas.xmlsoap.org/soap/envelope
 		<os:retrieve doc:name="ticket" doc:id="a2342d55-c9a4-4ccb-a559-b13df4adf8d7" key="ticket" target="ticket">
 			<os:default-value ><![CDATA[#[""]]]></os:default-value>
 		</os:retrieve>
-		<os:retrieve doc:name="watermark" doc:id="a098fc74-32d5-4dd2-8ecc-8881309ac6e9" key="lastModified" target="lastModified">
+		<os:retrieve doc:name="lastModified" doc:id="a098fc74-32d5-4dd2-8ecc-8881309ac6e9" key="lastModified" target="lastModified">
 			<os:default-value ><![CDATA[#[now()]]]></os:default-value>
 		</os:retrieve>
 		<salesforce:query doc:name="Query" doc:id="e74c1d4f-7204-4795-b2de-c669144bd654" config-ref="Salesforce_Config">
@@ -198,6 +198,9 @@ output application/xml indent=false, inlineCloseOn="never"
 }]]></ee:set-payload>
 								</ee:message>
 							</ee:transform>
+				<os:store doc:name="newQBCustomers" doc:id="b323671b-be2f-42a2-b54a-5a4e304786dd" key="newQBCustomers">
+					<os:value ><![CDATA[#[vars.customerAdd]]]></os:value>
+				</os:store>
 			</when>
 			<otherwise >
 				<ee:transform doc:name="Just Get Modified Customers in QuickBooks" doc:id="995a5393-efab-40b3-901f-a374c2d3934d">
@@ -223,7 +226,6 @@ output application/xml indent=false
 		</ee:transform>
 			</otherwise>
 		</choice>
-		<logger level="INFO" doc:name="Logger" doc:id="74d57936-4ae8-4942-bd5e-ab5d325a52ed" />
 		<ee:transform doc:id="c30571d4-cb16-41bb-8690-4ca723522161">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
@@ -242,12 +244,27 @@ ns dev http://developer.intuit.com/
                 </ee:set-payload>
             </ee:message>
         </ee:transform>
-		<os:store doc:name="Store" doc:id="f53f8c8d-90c5-4505-a631-40d69d3017ee" key="lastModified">
+		<logger level="INFO" doc:name="Logger" doc:id="74d57936-4ae8-4942-bd5e-ab5d325a52ed" message="#[payload]"/>
+		<os:store doc:name="lastModified" doc:id="f53f8c8d-90c5-4505-a631-40d69d3017ee" key="lastModified">
 			<os:value ><![CDATA[#[now()]]]></os:value>
 		</os:store>
     </flow>
     <flow name="receiveResponseXML:\soapkit-config">
 		<logger level="INFO" doc:name="Logger" doc:id="8a660816-e832-4c5a-8f50-f73e3fb1d8ac" message="#[payload]"/>
+		<set-payload value='#[output application/xml&#10;---&#10;read(payload.body.receiveResponseXML.response,"application/xml")]' doc:name="Set Payload" doc:id="931ca127-261a-4d46-97b0-e063b81ba387" />
+		<ee:transform doc:name="Transform Message" doc:id="1d53d0c1-1ec4-4b85-8af7-de804730dd64" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Name: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.CompanyName,
+	Phone: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Phone,
+	QB_List_ID__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.ListID
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:upsert doc:name="Upsert" doc:id="f0217685-ff44-471a-a077-541e344a0a05" config-ref="Salesforce_Config" objectType="Account" externalIdFieldName="QB_List_ID__c"/>
 		<!-- [STUDIO:"Logger"]<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message='#[output application/json&#10;&#45;&#45;-&#10;read(payload.body.receiveResponseXML.response,"application/xml")&#93;'/> [STUDIO] -->
 		<ee:transform>
             <ee:message>

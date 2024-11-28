@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<QBXML>
+  <QBXMLMsgsRs>
+    <CustomerQueryRs requestID="1" statusCode="0" statusSeverity="Info" statusMessage="Status OK">
+      <CustomerRet>
+        <ListID>80000002-1732722316</ListID>
+        <TimeCreated>2024-11-27T15:45:16+00:00</TimeCreated>
+        <TimeModified>2024-11-28T03:00:23+00:00</TimeModified>
+        <EditSequence>1732762823</EditSequence>
+        <Name>Canon</Name>
+        <FullName>Canon</FullName>
+        <IsActive>true</IsActive>
+        <Sublevel>0</Sublevel>
+        <CompanyName>Canon</CompanyName>
+        <Salutation>Mr</Salutation>
+        <FirstName>Tom</FirstName>
+        <LastName>Smith</LastName>
+        <BillAddress>
+          <Addr1>Canon</Addr1>
+          <Addr2>Tom Smith</Addr2>
+        </BillAddress>
+        <ShipAddress>
+          <Addr1>Canon</Addr1>
+          <Addr2>Tom Smith</Addr2>
+        </ShipAddress>
+        <Phone>312-555-1234</Phone>
+        <Balance>50000.00</Balance>
+        <TotalBalance>50000.00</TotalBalance>
+        <JobStatus>None</JobStatus>
+      </CustomerRet>
+    </CustomerQueryRs>
+  </QBXMLMsgsRs>
+</QBXML>
