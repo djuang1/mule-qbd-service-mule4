@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit-soap="http://www.mulesoft.org/schema/mule/apikit-soap" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/apikit-soap http://www.mulesoft.org/schema/mule/apikit-soap/current/mule-apikit-soap.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
-http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit-soap="http://www.mulesoft.org/schema/mule/apikit-soap" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/apikit-soap http://www.mulesoft.org/schema/mule/apikit-soap/current/mule-apikit-soap.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
     <http:listener-config name="api-httpListenerConfig">
         <http:listener-connection host="0.0.0.0" port="8081"/>
     </http:listener-config>
     <apikit-soap:config httpStatusVarName="httpStatus" name="soapkit-config" port="TroubleshootWebServiceFSSoap" service="TroubleshootWebServiceFS" wsdlLocation="https://test.developer.intuit.com/QBWC/TroubleshootWebServiceFS/Service.asmx?wsdl"/>
-    <flow name="api-main">
+    <configuration-properties doc:name="Configuration properties" doc:id="5db6f897-fc0e-4bc6-8604-3465a59d9506" file="mule-properties.yaml" />
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="9af692f6-c5db-4039-a122-2863d86a0866" >
+		<salesforce:basic-connection username="${sfdc.user}" password="${sfdc.password}" />
+	</salesforce:sfdc-config>
+	<flow name="api-main">
         <http:listener config-ref="api-httpListenerConfig" path="/TroubleshootWebServiceFS/TroubleshootWebServiceFSSoap">
             <http:response statusCode="#[attributes.additionalTransportData.statusCode default 200]">
                 <http:body>#[payload]</http:body>
@@ -119,23 +124,106 @@ ns soap http://schemas.xmlsoap.org/soap/envelope
 		<os:retrieve doc:name="watermark" doc:id="a098fc74-32d5-4dd2-8ecc-8881309ac6e9" key="lastModified" target="lastModified">
 			<os:default-value ><![CDATA[#[now()]]]></os:default-value>
 		</os:retrieve>
-		<ee:transform doc:name="Transform Message" doc:id="995a5393-efab-40b3-901f-a374c2d3934d" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
+		<salesforce:query doc:name="Query" doc:id="e74c1d4f-7204-4795-b2de-c669144bd654" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[SELECT BillingAddress,BillingCity,BillingCountry,BillingPostalCode,BillingState,BillingStreet,Description,FirstName,Id,LastModifiedDate,LastName,Name,Phone,QB_List_ID__c FROM Account WHERE LastModifiedDate > :lastModified ]]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	"lastModified" : vars.lastModified as String {format: "y-MM-d'T'HH:mm:ss'Z'"}
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<choice doc:name="Choice" doc:id="68d7184c-0a47-4b61-9141-a95d9392e856" >
+			<when expression="payload[0] != null">
+				<ee:transform doc:name="Transform Message" doc:id="81c25bbd-39a7-4ef9-a0d2-85f48d585066">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="customerAdd" ><![CDATA[%dw 2.0
+output application/xml indent=false, inlineCloseOn="never" 
+---
+CustomerAddRq: {
+	CustomerAdd: (payload filter ($.QB_List_ID__c == null) map {
+		Name: $.Name default "",
+		FirstName: $.FirstName default "",
+		LastName: $.LastName default "",
+		BillAddress: {
+			Addr1: $.BillingStreet default "",
+			City: $.BillingCity default "",
+			State: $.BillingState default "",
+			PostalCode: $.BillingPostalCode default "",
+			Country: $.BillingCountry default ""
+		},
+		Cc: $.Id,
+		Phone: $.Phone default ""
+	})
+}]]></ee:set-variable>
+						<ee:set-variable variableName="customerMod" ><![CDATA[%dw 2.0
+output application/xml indent=false, inlineCloseOn="never" 
+---
+CustomerModRq: {
+	CustomerMod: (payload filter ($.QB_List_ID__c != null) map {
+		ListID: payload.QB_List_ID__c,
+		EditSequence: "mod",
+		Name: $.Name default "",
+		FirstName: $.FirstName default "",
+		LastName: $.LastName default "",
+		BillAddress: {
+			Addr1: $.BillingStreet default "",
+			City: $.BillingCity default "",
+			State: $.BillingState default "",
+			PostalCode: $.BillingPostalCode default "",
+			Country: $.BillingCountry default ""
+		},
+		Phone: $.Phone default ""
+	})
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<ee:transform doc:name="Add or Mod Account" doc:id="1f70f9d0-94e4-455b-af56-1c25486d1ac9">
+								<ee:message>
+									<ee:set-payload><![CDATA[%dw 2.0
+output application/xml indent=false, inlineCloseOn="never" 
+---
+{
+	QBXML: {
+		QBXMLMsgsRq @(onError: "stopOnError"): {
+			(vars.customerAdd),
+			(vars.customerMod),
+			CustomerQueryRq @(requestID: "1"): {
+				//MaxReturned: 2,
+				FromModifiedDate: vars.lastModified as String {format: "y-MM-d'T'HH:mm:ss"}
+			}
+		}
+	}
+}]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Just Get Modified Customers in QuickBooks" doc:id="995a5393-efab-40b3-901f-a374c2d3934d">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
 output application/xml indent=false
 ---
 {
 	QBXML: {
 		QBXMLMsgsRq @(onError: "stopOnError"): {
 			CustomerQueryRq @(requestID: "1"): {
-				MaxReturned: 2,
-				FromModifiedDate: vars.lastModified as String {format: "y-MM-d'T'H:mm:ss"}
+				//MaxReturned: 2,
+				FromModifiedDate: vars.lastModified as String {format: "y-MM-d'T'HH:mm:ss"},				
+				//IncludeRetElement: "ListID",
+				//IncludeRetElement: "DataExtRet",	
+				//IncludeRetElement: "Cc",
+				//OwnerID: 0			
 			}
 		}
 	}
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="74d57936-4ae8-4942-bd5e-ab5d325a52ed" />
 		<ee:transform doc:id="c30571d4-cb16-41bb-8690-4ca723522161">
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0
@@ -154,13 +242,13 @@ ns dev http://developer.intuit.com/
                 </ee:set-payload>
             </ee:message>
         </ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="23917b77-144e-463b-915a-51fb4ee83290" />
 		<os:store doc:name="Store" doc:id="f53f8c8d-90c5-4505-a631-40d69d3017ee" key="lastModified">
 			<os:value ><![CDATA[#[now()]]]></os:value>
 		</os:store>
     </flow>
     <flow name="receiveResponseXML:\soapkit-config">
-		<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message='#[output application/json&#10;---&#10;read(payload.body.receiveResponseXML.response,"application/xml")]'/>
+		<logger level="INFO" doc:name="Logger" doc:id="8a660816-e832-4c5a-8f50-f73e3fb1d8ac" message="#[payload]"/>
+		<!-- [STUDIO:"Logger"]<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message='#[output application/json&#10;&#45;&#45;-&#10;read(payload.body.receiveResponseXML.response,"application/xml")&#93;'/> [STUDIO] -->
 		<ee:transform>
             <ee:message>
                 <ee:set-payload><![CDATA[%dw 2.0

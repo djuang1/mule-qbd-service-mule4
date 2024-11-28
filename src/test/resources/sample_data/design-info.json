@@ -2,6 +2,16 @@
   "sampleData": {
     "d216f8fa-9208-4560-928a-dc14a0625838": {
       "payload": "sample_data/qbxml.xml"
-    }
+    },
+    "995a5393-efab-40b3-901f-a374c2d3934d": {},
+    "97b59690-e59d-449b-8db2-42ac69100121": {
+      "payload": "sample_data/list_account.dwl"
+    },
+    "9fc517dd-161b-42dc-9657-a3740238a244": {
+      "vars-lastModified": "sample_data/Serializable_1.dwl",
+      "payload": "sample_data/list_Account_1.dwl"
+    },
+    "81c25bbd-39a7-4ef9-a0d2-85f48d585066": {},
+    "1f70f9d0-94e4-455b-af56-1c25486d1ac9": {}
   }
 }
