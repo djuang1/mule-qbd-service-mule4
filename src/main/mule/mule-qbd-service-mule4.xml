@@ -256,27 +256,36 @@ ns dev http://developer.intuit.com/
 		</os:store>
     </flow>
     <flow name="receiveResponseXML:\soapkit-config">
-		<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message='#[output application/json writeAttributes=true&#10;---&#10;payload.body.receiveResponseXML]'/>
+		<logger level="INFO" doc:name="Logger" doc:id="de6d1029-1d57-4459-8a0a-5b8ef703f87e" message="#[output application/json writeAttributes=true&#10;---&#10;payload.body.receiveResponseXML]" />
 		<choice doc:name="Choice" doc:id="48f339b4-2baf-49b5-a902-e04eb8675037" >
 			<when expression="#[output application/json writeAttributes=true&#10;---&#10;payload.body.receiveResponseXML.hresult == null]">
-				<set-variable value='#[output application/json writeAttributes=true&#10;---&#10;read(payload.body.receiveResponseXML.response,"application/xml").QBXML.QBXMLMsgsRs.CustomerQueryRs.@statusCode]' doc:name="Set Variable" doc:id="938dc3bb-4afd-45e9-935c-e726308ac3bd" variableName="statusCode" />
+				<set-variable value='#[output application/json writeAttributes=true&#10;---&#10;read((payload.body.receiveResponseXML.response default ""),"application/xml").QBXML.QBXMLMsgsRs.CustomerQueryRs.@statusCode]' doc:name="Set Variable" doc:id="938dc3bb-4afd-45e9-935c-e726308ac3bd" variableName="statusCode" />
 				<choice doc:name="Choice" doc:id="3f0412d9-e95c-41d2-867f-15e6254fbd96">
 			<when expression='#[vars.statusCode != "1"]'>
-				<set-payload value='#[output application/xml&#10;---&#10;read(payload.body.receiveResponseXML.response default "","application/xml")]' doc:name="Set Payload" doc:id="931ca127-261a-4d46-97b0-e063b81ba387" />
-						<ee:transform doc:name="Transform Message" doc:id="1d53d0c1-1ec4-4b85-8af7-de804730dd64">
-			<ee:message>
-				<ee:set-payload><![CDATA[%dw 2.0
+				<set-payload value='#[output application/java duplicateKeyAsArray=true&#10;---&#10;read(payload.body.receiveResponseXML.response default "","application/xml")]' doc:name="Set Payload" doc:id="931ca127-261a-4d46-97b0-e063b81ba387" />
+				<ee:transform doc:name="Transform Message" doc:id="864023ba-f14f-4af5-8ec5-d8a394161b3b">
+							<ee:message>
+								<ee:set-payload><![CDATA[%dw 2.0
 output application/java
 ---
-[{
-	Name: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Name,
-	Phone: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Phone,
-	QB_List_ID__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.ListID,
-	QB_Edit_Sequence__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.EditSequence,
-}]]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
-				<salesforce:upsert doc:name="Upsert" doc:id="f0217685-ff44-471a-a077-541e344a0a05" config-ref="Salesforce_Config" objectType="Account" externalIdFieldName="QB_List_ID__c" />
+if (typeOf(payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet) ~= "Array")
+    payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet map {
+        Name: $.Name,
+        Phone: $.Phone,
+        QB_List_ID__c: $.ListID,
+        QB_Edit_Sequence__c: $.EditSequence
+    }
+else
+    [{
+        Name: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Name,
+        Phone: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Phone,
+        QB_List_ID__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.ListID,
+        QB_Edit_Sequence__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.EditSequence
+    }]   
+]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<salesforce:upsert doc:name="Upsert" doc:id="f0217685-ff44-471a-a077-541e344a0a05" config-ref="Salesforce_Config" objectType="Account" externalIdFieldName="QB_List_ID__c" />
 			</when>
 			<otherwise>
 				<logger level="INFO" doc:name="Logger" doc:id="a4bcaf34-ffd6-4579-bfc1-c9ee5dceadff" message='"No Customer Updates"'/>
