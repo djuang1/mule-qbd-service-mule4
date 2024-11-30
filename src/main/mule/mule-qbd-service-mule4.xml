@@ -147,6 +147,7 @@ output application/xml indent=false, inlineCloseOn="never"
 CustomerAddRq: {
 	CustomerAdd: (payload filter ($.QB_List_ID__c == null) map {
 		Name: $.Name default "",
+		/*
 		FirstName: $.FirstName default "",
 		LastName: $.LastName default "",
 		BillAddress: {
@@ -157,6 +158,7 @@ CustomerAddRq: {
 			Country: $.BillingCountry default ""
 		},
 		AltPhone: $.Id,
+		*/
 		Phone: $.Phone default ""
 	})
 }]]></ee:set-variable>
@@ -167,7 +169,8 @@ CustomerModRq: {
 	CustomerMod: (payload filter ($.QB_List_ID__c != null) map {
 		ListID: payload.QB_List_ID__c,
 		EditSequence: payload.QB_Edit_Sequence__c,		
-		Name: $.Name default "",
+		Name: $.Name default "",		
+		/*
 		FirstName: $.FirstName default "",
 		LastName: $.LastName default "",		
 		BillAddress: {
@@ -176,11 +179,10 @@ CustomerModRq: {
 			State: $.BillingState default "",
 			PostalCode: $.BillingPostalCode default "",
 			Country: $.BillingCountry default ""
-		},
-		/*
-		AltPhone: $.Id,
-		*/
+		},		
+		AltPhone: $.Id,		
 		Phone: $.Phone default ""
+		*/
 	})
 }]]></ee:set-variable>
 					</ee:variables>
@@ -193,8 +195,8 @@ output application/xml indent=false, inlineCloseOn="never"
 {
 	QBXML: {
 		QBXMLMsgsRq @(onError: "stopOnError"): {
-			//(vars.customerAdd),
-			(vars.customerMod),
+			(if (vars.customerAdd.CustomerAddRq.CustomerAdd == null) null else vars.customerAdd),
+			(if (vars.customerMod.CustomerModRq.CustomerMod == null) null else vars.customerMod),
 			CustomerQueryRq @(requestID: "1"): {
 				//MaxReturned: 2,
 				FromModifiedDate: vars.lastModified as String {format: "y-MM-d'T'HH:mm:ss"}
@@ -273,14 +275,24 @@ if (typeOf(payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet) ~= "Array")
         Name: $.Name,
         Phone: $.Phone,
         QB_List_ID__c: $.ListID,
-        QB_Edit_Sequence__c: $.EditSequence
+        QB_Edit_Sequence__c: $.EditSequence,
+        BillingStreet: $.BillAddress.Addr1,
+	    BillingCity: $.BillAddress.City,
+	    BillingState: $.BillAddress.State,
+	    BillingPostalCode: $.BillAddress.PostalCode as String,
+	    BillingCountry: $.BillAddress.Country
     }
 else
     [{
         Name: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Name,
         Phone: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.Phone,
         QB_List_ID__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.ListID,
-        QB_Edit_Sequence__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.EditSequence
+        QB_Edit_Sequence__c: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.EditSequence,
+        BillingStreet: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.Addr1,
+        BillingCity: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.City,
+        BillingState: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.State,
+        BillingPostalCode: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.PostalCode as String,
+        BillingCountry: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.Country
     }]   
 ]]></ee:set-payload>
 							</ee:message>
@@ -313,6 +325,7 @@ ns q1 http://developer.intuit.com/
                 </ee:set-payload>
             </ee:message>
         </ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="f6be39c5-8f38-41b8-a7a1-03de4a6a016e" />
     </flow>
     <flow name="getLastError:\soapkit-config">
 		<ee:transform>

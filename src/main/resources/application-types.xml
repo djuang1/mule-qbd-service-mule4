@@ -17,4 +17,13 @@
       </types:output-event>
     </types:processor-declaration>
   </types:enrichment>
+  <types:enrichment select="#864023ba-f14f-4af5-8ec5-d8a394161b3b">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="receiveResponseXML"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
 </types:mule>
