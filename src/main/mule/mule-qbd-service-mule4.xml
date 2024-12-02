@@ -125,14 +125,11 @@ ns soap http://schemas.xmlsoap.org/soap/envelope
 			<os:default-value ><![CDATA[#[now()]]]></os:default-value>
 		</os:retrieve>
 		<salesforce:query doc:name="Query" doc:id="e74c1d4f-7204-4795-b2de-c669144bd654" config-ref="Salesforce_Config">
-			<salesforce:salesforce-query ><![CDATA[SELECT BillingAddress,BillingCity,BillingCountry,BillingPostalCode,BillingState,BillingStreet,Description,FirstName,Id,LastModifiedDate,LastName,Name,Phone,QB_List_ID__c,QB_Edit_Sequence__c 
-FROM Account 
-WHERE LastModifiedDate > :lastModified 
-AND LastModifiedById != '005Hr00000FQLvEIAX' ]]></salesforce:salesforce-query>
+			<salesforce:salesforce-query ><![CDATA[SELECT BillingAddress,BillingCity,BillingCountry,BillingPostalCode,BillingState,BillingStreet,Description,FirstName,Id,LastModifiedDate,LastName,Name,Phone,QB_List_ID__c,QB_Edit_Sequence__c FROM Account WHERE LastModifiedDate > :lastModified AND LastModifiedById != '005Hr00000FQLvEIAX']]></salesforce:salesforce-query>
 			<salesforce:parameters ><![CDATA[#[output application/java
 ---
 {
-	"lastModified" : vars.lastModified as String {format: "y-MM-d'T'HH:mm:ss'Z'"}
+	"lastModified" : vars.lastModified as String {format: "y-MM-dd'T'HH:mm:ss'Z'"}
 }]]]></salesforce:parameters>
 		</salesforce:query>
 		<choice doc:name="Choice" doc:id="68d7184c-0a47-4b61-9141-a95d9392e856" >
@@ -221,7 +218,7 @@ output application/xml indent=false
 		QBXMLMsgsRq @(onError: "stopOnError"): {
 			CustomerQueryRq @(requestID: "1"): {
 				//MaxReturned: 2,
-				FromModifiedDate: vars.lastModified as String {format: "y-MM-d'T'HH:mm:ss"},				
+				FromModifiedDate: vars.lastModified as String {format: "y-MM-dd'T'HH:mm:ss"},				
 				//IncludeRetElement: "ListID",
 				//IncludeRetElement: "DataExtRet",	
 				//IncludeRetElement: "Cc",
@@ -279,7 +276,7 @@ if (typeOf(payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet) ~= "Array")
         BillingStreet: $.BillAddress.Addr1,
 	    BillingCity: $.BillAddress.City,
 	    BillingState: $.BillAddress.State,
-	    BillingPostalCode: $.BillAddress.PostalCode as String,
+	    BillingPostalCode: $.BillAddress.PostalCode,
 	    BillingCountry: $.BillAddress.Country
     }
 else
@@ -291,13 +288,14 @@ else
         BillingStreet: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.Addr1,
         BillingCity: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.City,
         BillingState: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.State,
-        BillingPostalCode: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.PostalCode as String,
+        BillingPostalCode: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.PostalCode,
         BillingCountry: payload.QBXML.QBXMLMsgsRs.CustomerQueryRs.CustomerRet.BillAddress.Country
     }]   
 ]]></ee:set-payload>
 							</ee:message>
 						</ee:transform>
 						<salesforce:upsert doc:name="Upsert" doc:id="f0217685-ff44-471a-a077-541e344a0a05" config-ref="Salesforce_Config" objectType="Account" externalIdFieldName="QB_List_ID__c" />
+						<logger level="INFO" doc:name="Logger" doc:id="498a2bb4-0a11-40ae-81ff-52758ea3c128" message="#[output application/json --- payload]"/>
 			</when>
 			<otherwise>
 				<logger level="INFO" doc:name="Logger" doc:id="a4bcaf34-ffd6-4579-bfc1-c9ee5dceadff" message='"No Customer Updates"'/>
