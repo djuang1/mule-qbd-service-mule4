@@ -196,7 +196,7 @@ output application/xml indent=false, inlineCloseOn="never"
 			(if (vars.customerMod.CustomerModRq.CustomerMod == null) null else vars.customerMod),
 			CustomerQueryRq @(requestID: "1"): {
 				//MaxReturned: 2,
-				FromModifiedDate: vars.lastModified as String {format: "y-MM-d'T'HH:mm:ss"}
+				FromModifiedDate: vars.lastModified as String {format: "y-MM-dd'T'HH:mm:ss"}
 			}
 		}
 	}
@@ -260,7 +260,7 @@ ns dev http://developer.intuit.com/
 			<when expression="#[output application/json writeAttributes=true&#10;---&#10;payload.body.receiveResponseXML.hresult == null]">
 				<set-variable value='#[output application/json writeAttributes=true&#10;---&#10;read((payload.body.receiveResponseXML.response default ""),"application/xml").QBXML.QBXMLMsgsRs.CustomerQueryRs.@statusCode]' doc:name="Set Variable" doc:id="938dc3bb-4afd-45e9-935c-e726308ac3bd" variableName="statusCode" />
 				<choice doc:name="Choice" doc:id="3f0412d9-e95c-41d2-867f-15e6254fbd96">
-			<when expression='#[vars.statusCode != "1"]'>
+			<when expression='#[vars.statusCode == "0"]'>
 				<set-payload value='#[output application/java duplicateKeyAsArray=true&#10;---&#10;read(payload.body.receiveResponseXML.response default "","application/xml")]' doc:name="Set Payload" doc:id="931ca127-261a-4d46-97b0-e063b81ba387" />
 				<ee:transform doc:name="Transform Message" doc:id="864023ba-f14f-4af5-8ec5-d8a394161b3b">
 							<ee:message>
@@ -298,7 +298,7 @@ else
 						<logger level="INFO" doc:name="Logger" doc:id="498a2bb4-0a11-40ae-81ff-52758ea3c128" message="#[output application/json --- payload]"/>
 			</when>
 			<otherwise>
-				<logger level="INFO" doc:name="Logger" doc:id="a4bcaf34-ffd6-4579-bfc1-c9ee5dceadff" message='"No Customer Updates"'/>
+				<logger level="INFO" doc:name="Logger" doc:id="a4bcaf34-ffd6-4579-bfc1-c9ee5dceadff" message='#["STATUS CODE - " ++ vars.statusCode]'/>
 			</otherwise>
 		</choice>
 			</when>
